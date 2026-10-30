@@ -4,11 +4,11 @@
 
 ## 手机怎么打开
 
-部署后的地址：
-
 **https://baiwj0315-crypto.github.io/c-zhan/**
 
 用手机浏览器（Safari / Chrome 等）打开即可。建议「添加到主屏幕」方便回访。
+
+验证建议：打开后在「知识点」里斩一张卡或做一道题，再刷新页面，进度应还在；切到「我的」能看到本机统计。
 
 ## 进度存在哪里
 
@@ -29,17 +29,27 @@ npm install
 npm run dev
 ```
 
-开发服务器默认在根路径；正式构建的 `base` 是 `/c-zhan/`（对应 GitHub project pages）。
+正式构建的 `base` 是 `/c-zhan/`（对应 GitHub project pages）：
 
 ```bash
 npm run build
+cp dist/index.html dist/404.html
 npm run preview
 ```
 
-预览时请用带 `/c-zhan/` 前缀的地址。
+## 部署说明
+
+源码在 `main` 分支。静态产物推到 `gh-pages` 分支，GitHub Pages 从该分支根目录发布。
+
+更新站点时：
+
+```bash
+npm run build && cp dist/index.html dist/404.html
+# 将 dist 内容推到 gh-pages 分支
+```
 
 ## 技术说明
 
 - React + Vite + React Router（客户端路由）
 - Tailwind CSS，暗色、手机优先（`max-w-lg` + 底栏）
-- GitHub Actions 构建并发布到 GitHub Pages
+- 无后端、无登录；纯前端 localStorage
