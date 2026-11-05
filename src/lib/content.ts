@@ -1,6 +1,6 @@
 import { QUESTIONS as QUESTION_BANK } from "@/lib/questions";
 
-export const DAILY_GOAL = 15;
+export const DAILY_GOAL = 18;
 
 export type Level = "基础" | "提高";
 
