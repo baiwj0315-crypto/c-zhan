@@ -4,7 +4,11 @@
 
 ## 手机怎么打开
 
-**https://baiwj0315-crypto.github.io/c-zhan/**
+**https://baiwj0315-crypto.github.io/c-zhan/**（请带尾斜杠）
+
+也可用 hash 首页：`https://baiwj0315-crypto.github.io/c-zhan/#/`
+
+站点使用 HashRouter，子页形如 `/c-zhan/#/quiz`，避免 GitHub Pages 对子路径返回 404（部分安卓浏览器会直接显示 404）。
 
 用手机浏览器（Safari / Chrome 等）打开即可。建议「添加到主屏幕」方便回访。
 
@@ -57,6 +61,6 @@ npm run build && cp dist/index.html dist/404.html
 
 ## 技术说明
 
-- React + Vite + React Router（客户端路由）
+- React + Vite + React Router HashRouter（适配 GitHub Pages，避免子路径 404）
 - Tailwind CSS，暗色、手机优先（`max-w-lg` + 底栏）
 - 无后端、无登录；纯前端 localStorage
