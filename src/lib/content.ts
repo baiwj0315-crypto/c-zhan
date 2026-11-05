@@ -1,3 +1,5 @@
+import { QUESTIONS as QUESTION_BANK } from "@/lib/questions";
+
 export const DAILY_GOAL = 8;
 
 export type Level = "基础" | "提高";
@@ -12,14 +14,27 @@ export type Card = {
   example?: string;
 };
 
+export type QuestionKind = "choice" | "judge" | "fill" | "output";
+
+export type QuestionSource = "改编" | "练习风格" | "原题风格";
+
 export type Question = {
   id: string;
   chapter: number;
+  /** 缺省视为 choice，兼容旧题 */
+  kind?: QuestionKind;
   prompt: string;
   code?: string;
-  options: [string, string, string, string];
-  answer: 0 | 1 | 2 | 3;
+  /** choice / judge / output（选项呈现） */
+  options?: string[];
+  /** 正确选项下标 */
+  answer?: number;
+  /** fill / output（填空呈现）可接受的等价答案 */
+  answers?: string[];
   explain: string;
+  /** 关联知识点 card id */
+  cardIds: string[];
+  source?: QuestionSource;
 };
 
 export const CHAPTERS = [
@@ -529,286 +544,7 @@ int on = flags & (1 << 2); /* 第 2 位是 1 */`,
   },
 ];
 
-export const QUESTIONS: Question[] = [
-  {
-    id: "q1-1",
-    chapter: 1,
-    prompt: "sum 是 int，值为 11。执行 ave = sum / 2 后，double 变量 ave 是多少？",
-    options: ["5.5", "5.0", "6.0", "编译失败"],
-    answer: 1,
-    explain: "11 和 2 都是整数，先得到整数商 5，再放进 ave，成为 5.0。写成 sum / 2.0 才是 5.5。",
-  },
-  {
-    id: "q1-2",
-    chapter: 1,
-    prompt: "下面哪个不能做变量名？",
-    options: ["year", "Int", "double", "_score"],
-    answer: 2,
-    explain: "double 是关键字。Int 不是关键字（关键字是小写 int），year 和 _score 都合法。",
-  },
-  {
-    id: "q1-3",
-    chapter: 1,
-    prompt: "要把小写字母 ch 变成对应的大写字母，在 ASCII 里应该怎么做？",
-    options: ["ch = ch + 32", "ch = ch - 32", "ch = ch - 1", "ch = 'A'"],
-    answer: 1,
-    explain: "小写比对应大写的码大 32。'a' 是 97，减 32 得到 65，也就是 'A'。",
-  },
-  {
-    id: "q2-1",
-    chapter: 2,
-    prompt: "想把键盘上的整数读进 int 变量 n，哪一句是对的？",
-    options: [
-      'scanf("%d", n);',
-      'scanf("%d", &n);',
-      'scanf("%lf", &n);',
-      'printf("%d", &n);',
-    ],
-    answer: 1,
-    explain: "scanf 要的是地址，所以加 &。%d 对 int。%lf 是按 double 去读，类型不对。printf 是输出。",
-  },
-  {
-    id: "q2-2",
-    chapter: 2,
-    prompt: "printf 里的 \\n 起什么作用？",
-    options: ["输出字母 n", "输出一个空格", "换到下一行", "结束整个程序"],
-    answer: 2,
-    explain: "\\n 是换行符。没有它，后面的输出会接在同一行。它不结束程序。",
-  },
-  {
-    id: "q2-3",
-    chapter: 2,
-    prompt: "下面哪一句是在比较 a 和 b 是否相等？",
-    options: ["a = b", "a == b", "a := b", "a => b"],
-    answer: 1,
-    explain: "一个等号是赋值。两个等号才是关系运算。C 里没有 := 这种赋值，也没有 =>。",
-  },
-  {
-    id: "q3-1",
-    chapter: 3,
-    prompt: "int a = 0; 执行 if (a = 0) printf(\"yes\"); 会怎样？",
-    code: `int a = 0;
-if (a = 0) printf("yes");`,
-    options: ["输出 yes", "不输出 yes", "编译失败", "a 变成 1"],
-    answer: 1,
-    explain: "a = 0 是赋值，表达式的值是 0，条件为假，不会输出 yes。比较要写 a == 0。",
-  },
-  {
-    id: "q3-2",
-    chapter: 3,
-    prompt: "下面程序输出什么？",
-    code: `int n = 1;
-switch (n) {
-case 1: printf("A");
-case 2: printf("B"); break;
-default: printf("C");
-}`,
-    options: ["A", "AB", "ABC", "B"],
-    answer: 1,
-    explain: "case 1 没有 break，会贯穿到 case 2，输出 A 和 B，然后 break，不会进 default。",
-  },
-  {
-    id: "q3-3",
-    chapter: 3,
-    prompt: "n 等于 0 时，为什么 if (n != 0 && 10 / n > 1) 不会除零？",
-    options: [
-      "除法永远先算",
-      "&& 左边为假时，右边不算",
-      "if 会自动忽略除法",
-      "10 / 0 在 C 里等于 0",
-    ],
-    answer: 1,
-    explain: "&& 短路：左边 n != 0 已经是假，结果必假，右边的 10 / n 不会执行。",
-  },
-  {
-    id: "q4-1",
-    chapter: 4,
-    prompt: "下面循环体执行几次？",
-    code: `int i = 1;
-do {
-    i++;
-} while (i < 1);`,
-    options: ["0 次", "1 次", "2 次", "死循环"],
-    answer: 1,
-    explain: "do-while 先做再判断。循环体执行 1 次后 i 变成 2，条件 2 < 1 为假，停止。",
-  },
-  {
-    id: "q4-2",
-    chapter: 4,
-    prompt: "for 循环里遇到 continue，接下来先做什么？",
-    options: ["结束整个循环", "执行步进，再判断条件", "从头重新定义变量", "立刻执行循环后面的语句"],
-    answer: 1,
-    explain: "continue 跳过本轮剩下的循环体。对 for 来说，接着执行步进表达式，然后再判断条件。",
-  },
-  {
-    id: "q4-3",
-    chapter: 4,
-    prompt: "循环结束后 s 是多少？",
-    code: `int s = 0, i;
-for (i = 1; i <= 4; i++)
-    s = s + i;`,
-    options: ["4", "8", "10", "24"],
-    answer: 2,
-    explain: "s 依次加上 1、2、3、4，和是 10。24 是连乘才会得到的数。",
-  },
-  {
-    id: "q5-1",
-    chapter: 5,
-    prompt: "int a[4]; 最后一个合法元素是？",
-    options: ["a[4]", "a[3]", "a[5]", "a[1]"],
-    answer: 1,
-    explain: "4 个元素的下标是 0、1、2、3。a[4] 越界。",
-  },
-  {
-    id: "q5-2",
-    chapter: 5,
-    prompt: "int a[5] = {1, 2}; 则 a[4] 是多少？",
-    options: ["1", "2", "0", "不确定"],
-    answer: 2,
-    explain: "初始化列表没写到的元素补 0。a[0]=1，a[1]=2，a[2]、a[3]、a[4] 都是 0。",
-  },
-  {
-    id: "q5-3",
-    chapter: 5,
-    prompt: "char s[] = \"Hi\"; 这个数组有几个元素？",
-    options: ["2", "3", "4", "1"],
-    answer: 1,
-    explain: "'H'、'i' 和结尾的 '\\0'，共 3 个。strlen(s) 才是 2。",
-  },
-  {
-    id: "q6-1",
-    chapter: 6,
-    prompt: "执行后 a 的值是多少？",
-    code: `int a = 3;
-int *p = &a;
-*p = 8;`,
-    options: ["3", "8", "地址", "编译失败"],
-    answer: 1,
-    explain: "p 指向 a，*p = 8 就是给 a 赋值 8。",
-  },
-  {
-    id: "q6-2",
-    chapter: 6,
-    prompt: "int *p 指向数组的某个元素。p + 1 指向哪里？",
-    options: ["下一个字节", "下一个 int 元素", "数组开头", "空指针"],
-    answer: 1,
-    explain: "指针加 1，跨过的是一个它所指向的元素，不是固定 1 个字节。int * 加 1 就到下一个 int。",
-  },
-  {
-    id: "q6-3",
-    chapter: 6,
-    prompt: "int a[3] = {10, 20, 30}; int *p = a; 则 *(p + 2) 是多少？",
-    options: ["10", "20", "30", "12"],
-    answer: 2,
-    explain: "p 指向 a[0]，p+2 指向 a[2]，值是 30。",
-  },
-  {
-    id: "q7-1",
-    chapter: 7,
-    prompt: "void add(int x) { x = x + 1; } 调用 add(a) 之后，a 会怎样？",
-    options: ["一定加 1", "不变", "变成 0", "程序必崩"],
-    answer: 1,
-    explain: "值传递。x 是 a 的拷贝，函数里改 x，a 还是原来的值。要改 a，需要传 &a。",
-  },
-  {
-    id: "q7-2",
-    chapter: 7,
-    prompt: "函数写在 main 后面，main 里却要调用它。调用之前应该先有什么？",
-    options: ["另一个 main", "函数原型说明", "全局数组", "include <math.h> 就够了"],
-    answer: 1,
-    explain: "编译器看到调用时要知道参数和返回类型。定义在后面，就在前面写原型，例如 int mysum(int m, int n);",
-  },
-  {
-    id: "q7-3",
-    chapter: 7,
-    prompt: "数组作函数参数时，函数里为什么还要再收一个 n？",
-    options: [
-      "数组不能作参数",
-      "传进去的是地址，元素个数不会跟着过去",
-      "n 是返回值",
-      "没有 n 就不能用下标",
-    ],
-    answer: 1,
-    explain: "形参里的数组名是指针。函数不知道调用者原来定义了多长，所以长度单独传。",
-  },
-  {
-    id: "q8-1",
-    chapter: 8,
-    prompt: "struct Stu a; 里面有 double score。怎么读出这个成绩？",
-    options: ["a->score", "a.score", "score.a", "*a.score"],
-    answer: 1,
-    explain: "a 是结构体变量，用点号。箭头用在指针上，例如 p->score。",
-  },
-  {
-    id: "q8-2",
-    chapter: 8,
-    prompt: "struct Stu *p = &a; 要把成绩改成 90，哪一句对？",
-    options: ["p.score = 90;", "*p = 90;", "p->score = 90;", "score->p = 90;"],
-    answer: 2,
-    explain: "p 是指针，用 p->score。p.score 会报错，因为点号要求左边是结构体，不是指针。",
-  },
-  {
-    id: "q8-3",
-    chapter: 8,
-    prompt: "一班 30 个学生，每人有学号和成绩。更合适的存储是？",
-    options: ["30 个互不相干的 int", "一个 int 数组只存学号", "结构体数组", "一个 char"],
-    answer: 2,
-    explain: "学号和成绩类型可以不同，但属于同一个人。用结构体表示一个人，再用数组放 30 个人。",
-  },
-  {
-    id: "q9-1",
-    chapter: 9,
-    prompt: "fopen 打不开文件时，返回值是？",
-    options: ["0 号元素", "空字符串", "NULL", "EOF 文件本身"],
-    answer: 2,
-    explain: "失败返回空指针 NULL。必须先判断，再读写。",
-  },
-  {
-    id: "q9-2",
-    chapter: 9,
-    prompt: "文件 score.txt 里已有成绩。用 fopen(..., \"w\") 打开，原内容会怎样？",
-    options: ["保留，从末尾接着写", "保留，从头覆盖一部分", "被清空", "变成只读"],
-    answer: 2,
-    explain: "\"w\" 会把已有文件截成空文件再写。想保留并接在后面，用 \"a\"。只读用 \"r\"。",
-  },
-  {
-    id: "q9-3",
-    chapter: 9,
-    prompt: "fscanf(fp, \"%d\", &n) 里的 & 为什么还要？",
-    options: [
-      "文件指针已经是地址，所以 & 可以省略",
-      "n 是普通变量，读入仍然要它的地址",
-      "& 表示写文件",
-      "只有字符串才加 &",
-    ],
-    answer: 1,
-    explain: "fscanf 和 scanf 一样，要把读到的整数放进 n，就要给 &n。fp 只说明从哪个文件读。",
-  },
-  {
-    id: "q10-1",
-    chapter: 10,
-    prompt: "1 << 3 的值是多少？",
-    options: ["3", "4", "6", "8"],
-    answer: 3,
-    explain: "1 左移 3 位，相当于 1 乘以 2 的 3 次方，是 8。",
-  },
-  {
-    id: "q10-2",
-    chapter: 10,
-    prompt: "6 & 3 的值是多少？（6 是二进制 110，3 是 011）",
-    options: ["1", "2", "7", "5"],
-    answer: 1,
-    explain: "逐位与：110 & 011 = 010，也就是 2。7 是按位或的结果，5 是按位异或的结果。",
-  },
-  {
-    id: "q10-3",
-    chapter: 10,
-    prompt: "下面哪一个是按位与，用来检查某一位？",
-    options: ["&&", "&", "||", "!"],
-    answer: 1,
-    explain: "&& 和 ||、! 是逻辑运算。位运算里的与是单个 &。掩码检查某一位时用 &。",
-  },
-];
+export const QUESTIONS: Question[] = QUESTION_BANK;
 
 const cardMap = new Map(CARDS.map((card) => [card.id, card]));
 const questionMap = new Map(QUESTIONS.map((question) => [question.id, question]));
@@ -823,6 +559,50 @@ export function questionById(id: string): Question | null {
 
 export function chapterTitle(id: number): string {
   return CHAPTERS.find((chapter) => chapter.id === id)?.title ?? "未分章";
+}
+
+export function questionKind(question: Question): QuestionKind {
+  return question.kind ?? "choice";
+}
+
+/** 填空类：fill，或 output 且用 answers 呈现 */
+export function isTextAnswer(question: Question): boolean {
+  const kind = questionKind(question);
+  if (kind === "fill") return true;
+  if (kind === "output" && (!question.options || question.options.length === 0) && (question.answers?.length ?? 0) > 0) {
+    return true;
+  }
+  return false;
+}
+
+export function normalizeFill(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+export function checkQuestionAnswer(
+  question: Question,
+  input: { choice?: number; text?: string },
+): boolean {
+  if (isTextAnswer(question)) {
+    const got = normalizeFill(input.text ?? "");
+    if (!got) return false;
+    return (question.answers ?? []).some((item) => normalizeFill(item) === got);
+  }
+  const options = question.options ?? [];
+  const choice = input.choice;
+  if (choice === undefined || !Number.isInteger(choice) || choice < 0 || choice >= options.length) {
+    return false;
+  }
+  return choice === question.answer;
+}
+
+export function correctLabel(question: Question): string {
+  if (isTextAnswer(question)) {
+    return (question.answers ?? [])[0] ?? "";
+  }
+  const options = question.options ?? [];
+  const index = question.answer ?? 0;
+  return options[index] ?? "";
 }
 
 export function queueFor(

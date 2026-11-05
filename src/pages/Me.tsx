@@ -1,7 +1,16 @@
-import { useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { Shell } from "@/components/shell";
 import { useStudy } from "@/components/study-provider";
-import { STORAGE_KEY } from "@/lib/storage";
+import { CARDS } from "@/lib/content";
+import { STORAGE_KEY, type MasteryLevel } from "@/lib/storage";
+
+const LEVEL_TONE: Record<MasteryLevel, string> = {
+  未练: "border-line text-muted",
+  需复习: "border-warn/50 text-warn",
+  初识: "border-line text-ink",
+  较熟: "border-accent/40 text-accent",
+  掌握: "border-accent text-accent",
+};
 
 export function MePage() {
   const { snapshot, createNote, removeNote, clearProgress } = useStudy();
@@ -13,6 +22,14 @@ export function MePage() {
   const [clearedHint, setClearedHint] = useState<string | null>(null);
 
   const openWrongs = snapshot.wrongs.filter((row) => !row.mastered).length;
+
+  const masteryByCard = useMemo(() => {
+    const map = new Map(snapshot.cardMastery.map((row) => [row.cardId, row]));
+    return CARDS.map((card) => ({
+      card,
+      row: map.get(card.id),
+    }));
+  }, [snapshot.cardMastery]);
 
   function onCreate(event: FormEvent) {
     event.preventDefault();
@@ -34,11 +51,47 @@ export function MePage() {
       <section className="mt-5 rounded-2xl border border-line bg-card p-5">
         <h2 className="text-lg font-medium">进度在本机</h2>
         <p className="mt-2 text-sm leading-relaxed text-muted">
-          不需要登录。斩卡、做题、错题本和笔记都存在当前手机浏览器的本地存储里（键名{" "}
+          不需要登录。斩卡、做题、错题本、知识点掌握和笔记都存在当前手机浏览器的本地存储里（键名{" "}
           <code className="rounded bg-bg px-1 font-mono text-xs">{STORAGE_KEY}</code>
           ）。清站点数据、换浏览器或换设备都不同步，也不会自动备份。
         </p>
       </section>
+
+      <h2 className="mt-8 text-lg font-medium">知识点掌握</h2>
+      <p className="mt-1 text-sm text-muted">根据做题连续答对/答错更新。连续答对→较熟/掌握；答错→需复习。</p>
+      <ul className="mt-4 flex flex-col gap-3">
+        {snapshot.chapterMastery.map((chapter) => {
+          const cards = masteryByCard.filter((item) => item.card.chapter === chapter.chapter);
+          return (
+            <li key={chapter.chapter} className="rounded-2xl border border-line bg-card p-4">
+              <div className="flex items-baseline justify-between gap-2">
+                <h3 className="font-medium">
+                  {String(chapter.chapter).padStart(2, "0")} {chapter.title}
+                </h3>
+                <span className="text-xs text-muted">{chapter.pct}%</span>
+              </div>
+              <div className="mt-2 h-1 overflow-hidden rounded-full bg-line">
+                <div className="h-full rounded-full bg-accent" style={{ width: `${chapter.pct}%` }} />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {cards.map(({ card, row }) => {
+                  const level = row?.level ?? "未练";
+                  return (
+                    <span
+                      key={card.id}
+                      className={`rounded-full border px-2 py-0.5 text-xs ${LEVEL_TONE[level]}`}
+                      title={level}
+                    >
+                      {card.term}
+                      <span className="ml-1 opacity-70">{level}</span>
+                    </span>
+                  );
+                })}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
 
       <h2 className="mt-8 text-lg font-medium">本机数据</h2>
       <dl className="mt-4 overflow-hidden rounded-2xl border border-line">
@@ -109,7 +162,7 @@ export function MePage() {
       <section className="mt-10 rounded-2xl border border-warn/40 bg-card p-5">
         <h2 className="text-lg font-medium text-warn">清除本地进度</h2>
         <p className="mt-2 text-sm leading-relaxed text-muted">
-          会删掉本机全部斩卡、做题、错题和笔记，且无法恢复。清浏览器缓存也会有同样效果。
+          会删掉本机全部斩卡、做题、错题、掌握度和笔记，且无法恢复。清浏览器缓存也会有同样效果。
         </p>
         <button
           type="button"

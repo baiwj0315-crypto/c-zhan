@@ -39,7 +39,43 @@ export function HomePage() {
         </Link>
       </section>
 
-      <h2 className="mt-7 text-xs text-muted">十章</h2>
+      <h2 className="mt-7 text-xs text-muted">各章掌握（做题）</h2>
+      <ul className="mt-2 flex flex-col gap-1.5">
+        {snapshot.chapterMastery.map((row) => {
+          const tone =
+            row.pct >= 70 ? "text-accent" : row.review > 0 ? "text-warn" : "text-muted";
+          return (
+            <li key={row.chapter}>
+              <Link
+                to={`/quiz?chapter=${row.chapter}&auto=1`}
+                className="block rounded-2xl bg-card px-4 py-3.5 active:bg-line/40"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="w-6 shrink-0 font-mono text-sm text-muted">
+                    {String(row.chapter).padStart(2, "0")}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="font-medium">{row.title}</span>
+                      <span className={`shrink-0 text-xs ${tone}`}>{row.pct}%</span>
+                    </div>
+                    <p className="mt-0.5 truncate text-sm text-muted">
+                      {row.practiced === 0
+                        ? "还没练过"
+                        : `练过 ${row.practiced}/${row.total}${row.review ? ` · 需复习 ${row.review}` : ""}`}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-2.5 ml-9 h-0.5 overflow-hidden rounded-full bg-line">
+                  <div className="h-full rounded-full bg-accent" style={{ width: `${row.pct}%` }} />
+                </div>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+
+      <h2 className="mt-7 text-xs text-muted">斩卡进度</h2>
       <ul className="mt-2 flex flex-col gap-1.5">
         {CHAPTERS.map((chapter) => {
           const points = CARDS.filter((card) => card.chapter === chapter.id);
@@ -48,23 +84,20 @@ export function HomePage() {
           return (
             <li key={chapter.id}>
               <Link
-                to={`/quiz?chapter=${chapter.id}&auto=1`}
-                className="block rounded-2xl bg-card px-4 py-3.5 active:bg-line/40"
+                to={`/learn?mode=list&chapter=${chapter.id}`}
+                className="block rounded-2xl border border-line/60 bg-card/50 px-4 py-3 active:bg-line/40"
               >
-                <div className="flex items-center gap-3">
-                  <span className="w-6 shrink-0 font-mono text-sm text-muted">{String(chapter.id).padStart(2, "0")}</span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="font-medium">{chapter.title}</span>
-                      <span className="shrink-0 text-xs text-muted">
-                        {cut}/{points.length}
-                      </span>
-                    </div>
-                    <p className="mt-0.5 truncate text-sm text-muted">{chapter.blurb}</p>
-                  </div>
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-sm">
+                    <span className="mr-2 font-mono text-muted">{String(chapter.id).padStart(2, "0")}</span>
+                    {chapter.title}
+                  </span>
+                  <span className="text-xs text-muted">
+                    斩 {cut}/{points.length}
+                  </span>
                 </div>
-                <div className="mt-2.5 ml-9 h-0.5 overflow-hidden rounded-full bg-line">
-                  <div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
+                <div className="mt-2 h-0.5 overflow-hidden rounded-full bg-line">
+                  <div className="h-full rounded-full bg-accent/70" style={{ width: `${pct}%` }} />
                 </div>
               </Link>
             </li>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { questionById } from "@/lib/content";
+import { correctLabel, isTextAnswer, questionById, questionKind } from "@/lib/content";
 import { CodeBlock } from "@/components/code-block";
 import { Shell } from "@/components/shell";
 import { useStudy } from "@/components/study-provider";
@@ -9,6 +9,8 @@ export function WrongsPage() {
   const [onlyOpen, setOnlyOpen] = useState(true);
   const [redoId, setRedoId] = useState<string | null>(null);
   const [picked, setPicked] = useState<number | null>(null);
+  const [fillValue, setFillValue] = useState("");
+  const [submitted, setSubmitted] = useState(false);
   const [verdict, setVerdict] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -16,11 +18,24 @@ export function WrongsPage() {
   const redo = redoId ? questionById(redoId) : null;
 
   function choose(index: number) {
-    if (!redo || picked !== null) return;
+    if (!redo || submitted) return;
     try {
-      const result = answer(redo.id, index);
+      const result = answer(redo.id, { choice: index });
       setPicked(index);
-      setVerdict(result.correct ? `对了。${result.explain}` : result.explain);
+      setSubmitted(true);
+      setVerdict(result.correct ? `对了。${result.explain}` : `错了。答案：${result.answerText}。${result.explain}`);
+      setError(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "没有记下来");
+    }
+  }
+
+  function submitFill() {
+    if (!redo || submitted) return;
+    try {
+      const result = answer(redo.id, { text: fillValue });
+      setSubmitted(true);
+      setVerdict(result.correct ? `对了。${result.explain}` : `错了。答案：${result.answerText}。${result.explain}`);
       setError(null);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "没有记下来");
@@ -50,16 +65,19 @@ export function WrongsPage() {
           {rows.map((row) => {
             const question = questionById(row.questionId);
             if (!question) return null;
-            const yours = question.options[row.lastChoice] ?? "—";
-            const right = question.options[question.answer];
+            const yours =
+              row.lastText ||
+              (row.lastChoice >= 0 ? (question.options?.[row.lastChoice] ?? "—") : "—");
+            const right = correctLabel(question);
             return (
               <li key={row.questionId} className="rounded-2xl border border-line bg-card p-4">
                 <div className="flex items-center gap-2 text-xs text-muted">
                   <span>{row.mastered ? "已掌握" : `错了 ${row.wrongCount} 次`}</span>
+                  <span>· {questionKind(question)}</span>
                 </div>
                 <p className="mt-2 font-medium">{question.prompt}</p>
                 <p className="mt-2 text-sm text-muted">
-                  你上次选的是「{yours}」。答案是「{right}」。
+                  你上次答的是「{yours}」。答案是「{right}」。
                 </p>
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <button
@@ -67,6 +85,8 @@ export function WrongsPage() {
                     onClick={() => {
                       setRedoId(question.id);
                       setPicked(null);
+                      setFillValue("");
+                      setSubmitted(false);
                       setVerdict(null);
                       setError(null);
                     }}
@@ -107,7 +127,7 @@ export function WrongsPage() {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-center justify-between">
-              <p className="text-sm text-muted">重做</p>
+              <p className="text-sm text-muted">重做 · {questionKind(redo)}</p>
               <button type="button" onClick={() => setRedoId(null)} className="min-h-11 px-2 text-sm text-muted">
                 关闭
               </button>
@@ -118,29 +138,52 @@ export function WrongsPage() {
                 <CodeBlock code={redo.code} />
               </div>
             ) : null}
-            <div className="mt-4 flex flex-col gap-2">
-              {redo.options.map((option, index) => {
-                const revealed = picked !== null;
-                const tone = !revealed
-                  ? "border-line"
-                  : index === redo.answer
-                    ? "border-accent text-accent"
-                    : index === picked
-                      ? "border-warn text-warn"
-                      : "border-line text-muted";
-                return (
+
+            {isTextAnswer(redo) ? (
+              <div className="mt-4">
+                <input
+                  value={fillValue}
+                  onChange={(event) => setFillValue(event.target.value)}
+                  disabled={submitted}
+                  placeholder="填写答案"
+                  className="w-full rounded-xl border border-line bg-bg px-4 py-3 outline-none"
+                />
+                {!submitted ? (
                   <button
-                    key={option}
                     type="button"
-                    disabled={revealed}
-                    onClick={() => choose(index)}
-                    className={`min-h-12 rounded-xl border bg-bg px-4 text-left ${tone}`}
+                    onClick={submitFill}
+                    disabled={!fillValue.trim()}
+                    className="mt-3 min-h-12 w-full rounded-xl bg-accent text-bg disabled:opacity-40"
                   >
-                    {option}
+                    提交
                   </button>
-                );
-              })}
-            </div>
+                ) : null}
+              </div>
+            ) : (
+              <div className="mt-4 flex flex-col gap-2">
+                {(redo.options ?? []).map((option, index) => {
+                  const revealed = submitted;
+                  const tone = !revealed
+                    ? "border-line"
+                    : index === redo.answer
+                      ? "border-accent text-accent"
+                      : index === picked
+                        ? "border-warn text-warn"
+                        : "border-line text-muted";
+                  return (
+                    <button
+                      key={`${redo.id}-${option}-${index}`}
+                      type="button"
+                      disabled={revealed}
+                      onClick={() => choose(index)}
+                      className={`min-h-12 rounded-xl border bg-bg px-4 text-left ${tone}`}
+                    >
+                      {option}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             {verdict ? <p className="mt-4 text-sm leading-relaxed text-muted">{verdict}</p> : null}
           </div>
         </div>

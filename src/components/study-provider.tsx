@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
+  STORAGE_KEY,
   addNote,
   clearAllProgress,
   deleteNote,
@@ -7,6 +8,7 @@ import {
   masterWrong,
   saveCard,
   submitAnswer,
+  type AnswerPayload,
   type AnswerResult,
   type StudySnapshot,
 } from "@/lib/storage";
@@ -14,7 +16,7 @@ import {
 type StudyContextValue = {
   snapshot: StudySnapshot;
   saveCard: (cardId: string, status: "cut" | "review") => void;
-  answer: (questionId: string, chosen: number) => AnswerResult;
+  answer: (questionId: string, payload: AnswerPayload) => AnswerResult;
   master: (questionId: string) => void;
   createNote: (title: string, body: string) => void;
   removeNote: (id: number) => void;
@@ -28,7 +30,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
-      if (event.key === null || event.key === "c-zhan-study-v1") {
+      if (event.key === null || event.key === STORAGE_KEY) {
         setSnapshot(loadSnapshot());
       }
     };
@@ -44,8 +46,8 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     () => ({
       snapshot,
       saveCard: (cardId, status) => refresh(saveCard(cardId, status)),
-      answer: (questionId, chosen) => {
-        const result = submitAnswer(questionId, chosen);
+      answer: (questionId, payload) => {
+        const result = submitAnswer(questionId, payload);
         refresh(result.snapshot);
         return result;
       },
