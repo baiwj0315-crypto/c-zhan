@@ -166,7 +166,8 @@ function levelFrom(row: MasteryRow | undefined): MasteryLevel {
   if (!row || (row.correct === 0 && row.wrong === 0)) return "未练";
   if (row.streak <= 0) return "需复习";
   if (row.streak === 1) return "初识";
-  if (row.streak <= 3) return "较熟";
+  // streak 2–5：较熟；≥6 才算掌握（收紧，避免题少时很快满进度）
+  if (row.streak < 6) return "较熟";
   return "掌握";
 }
 
@@ -175,11 +176,11 @@ function levelWeight(level: MasteryLevel): number {
     case "未练":
       return 0;
     case "需复习":
-      return 15;
+      return 10;
     case "初识":
-      return 40;
+      return 25;
     case "较熟":
-      return 70;
+      return 55;
     case "掌握":
       return 100;
   }
@@ -318,7 +319,8 @@ function buildChapterMasteryFixed(cards: CardMastery[]): ChapterMastery[] {
     const scoped = cards.filter((row) => cardById(row.cardId)?.chapter === chapter.id);
     const total = scoped.length;
     const practiced = scoped.filter((row) => row.level !== "未练").length;
-    const mastered = scoped.filter((row) => row.level === "掌握" || row.level === "较熟").length;
+    // 章节「掌握」计数只计真正掌握，避免「较熟」就把进度刷满
+    const mastered = scoped.filter((row) => row.level === "掌握").length;
     const review = scoped.filter((row) => row.level === "需复习").length;
     const pct = total
       ? Math.round(scoped.reduce((sum, row) => sum + levelWeight(row.level), 0) / total)
